@@ -5,11 +5,12 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import os
 import json
+import argparse
 
 # First, you'll need to install selenium:
 # pip install selenium
-# You'll also need to install a webdriver for your browser
-# For Chrome: pip install webdriver-manager
+
+
 
 # Load form data from JSON file
 def load_form_data(file_path):
@@ -19,6 +20,19 @@ def load_form_data(file_path):
 # Load the form data
 FORM_DATA = load_form_data('form_data.json')
 
+# Helper to handle debug stepping
+def debug_checkpoint(enabled, message):
+    if not enabled:
+        return
+
+    command = input(
+        f"\n[STEP] {message}\n"
+        "Press Enter to continue, or type q to quit: "
+    ).strip().lower()
+
+    if command in {"q", "quit"}:
+        raise KeyboardInterrupt("Debug session stopped by user")
+    
 def fill_form_1(driver, data):
     """
     Fill the form with provided data
@@ -402,7 +416,7 @@ def click_download_pdf(driver):
     except Exception as e:
         print(f"Error clicking download PDF button: {str(e)}")
 
-def click_button_on_website():
+def click_button_on_website(step_mode=False):
     # Set up the LibreWolf (Firefox) driver
     librewolf_path = os.environ.get(
         "LIBREWOLF_BINARY",
@@ -433,35 +447,47 @@ def click_button_on_website():
         
         # Fill form 1
         fill_form_1(driver, FORM_DATA["form_1"])
+        debug_checkpoint(step_mode, "Subscriber information filled. Review the page.")
         click_next_button(driver)
         
         # Fill form 2
         fill_form_2(driver, FORM_DATA["form_2"])
+        debug_checkpoint(step_mode, "Patient information filled. Review the page.")
         click_next_button(driver)
         
         # Fill form 3
         fill_form_3(driver, FORM_DATA["form_3"])
+        debug_checkpoint(step_mode, "Foreign-service selection completed.")
         click_next_button(driver)
         
         # Fill form 4
         fill_form_4(driver, FORM_DATA["form_4"])
+        debug_checkpoint(step_mode, "Service type and location form completed.")
         click_next_button(driver)
         
         # Fill form 5
         fill_form_5(driver, FORM_DATA["form_5"])
+        debug_checkpoint(step_mode, "Provider information filled. Review the page.")
         click_next_button(driver)
         
         # Fill form 6 entries
-        for index, entry in enumerate(FORM_DATA["form_6_entries"]):
+        services = FORM_DATA["form_6_entries"]
+        for index, entry in enumerate(services):
             fill_form_6(driver, entry, index)
+            debug_checkpoint(
+                step_mode, 
+                f"Service entry {index + 1} of {len(services)} filled. Review the page."
+            )
             click_next_button(driver)
         
         # Fill form 7
         fill_form_7(driver, FORM_DATA["form_7"])
+        debug_checkpoint(step_mode, "Charges summary form filled. Review the page.")
         click_next_button(driver)
         
         # Upload PDF in form 11
         fill_form_11(driver, FORM_DATA["form_11"]["pdf_path"])
+        debug_checkpoint(step_mode, "PDF file selected. Review the page.")
         click_next_button(driver)
         
         # # Click the download PDF button
@@ -475,4 +501,14 @@ def click_button_on_website():
         driver.quit()
 
 if __name__ == "__main__":
-    click_button_on_website()
+    parser = argparse.ArgumentParser(
+        description="Fill the Surest claim form."
+    )
+    parser.add_argument(
+        "--step",
+        action="store_true",
+        help="Pause for confirmation before advancing each page."
+    )
+    args = parser.parse_args()
+
+    click_button_on_website(step_mode=args.step)
