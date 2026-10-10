@@ -403,17 +403,26 @@ def click_download_pdf(driver):
         print(f"Error clicking download PDF button: {str(e)}")
 
 def click_button_on_website():
-    # Set up the Chrome driver
-    from selenium.webdriver.chrome.service import Service
-    from selenium.webdriver.chrome.options import Options
-    from webdriver_manager.chrome import ChromeDriverManager
-    
-    # Configure Chrome options
-    chrome_options = Options()
-    # chrome_options.add_argument('--headless')  # Run in headless mode (no GUI)
-    
-    # Initialize the driver
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    # Set up the LibreWolf (Firefox) driver
+    librewolf_path = os.environ.get(
+        "LIBREWOLF_BINARY",
+        r"C:\Program Files\LibreWolf\librewolf.exe"
+    )
+
+    if not os.path.isfile(librewolf_path):
+        raise FileNotFoundError(
+            f"LibreWolf was not found at: {librewolf_path}\n"
+            "Set LIBREWOLF_BINARY to the location of librewolf.exe."
+        )
+
+    options = webdriver.FirefoxOptions()
+    options.binary_location = librewolf_path
+
+    # Uncomment to run without showing the browser:
+    # options.add_argument("-headless")
+
+    # Selenium Manager obtains and starts GeckoDriver automatically.
+    driver = webdriver.Firefox(options=options)
     
     try:
         # Navigate to the website
